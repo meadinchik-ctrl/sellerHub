@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from backend.app.core.config import settings
 from backend.app.core.database import init_db, AsyncSessionLocal
 from backend.app.api import (
@@ -95,3 +95,28 @@ async def health_check():
         "version": "1.0.0",
         "maintenance_mode": settings.platform.maintenance_mode
     }
+
+
+# Mount built React frontend in production (Single-Container Railway deploy)
+FRONTEND_DIST = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "dist")
+if os.path.exists(FRONTEND_DIST):
+    # Mount assets folder
+    assets_dir = os.path.join(FRONTEND_DIST, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    # Serve SPA index.html for all other frontend routes
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Don't intercept API or uploads routes
+        if full_path.startswith("api/") or full_path.startswith("uploads/"):
+            return JSONResponse(status_code=404, content={"detail": "Not found"})
+        
+        target_file = os.path.join(FRONTEND_DIST, full_path)
+        if os.path.isfile(target_file):
+            return FileResponse(target_file)
+        
+        index_file = os.path.join(FRONTEND_DIST, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+        return JSONResponse(status_code=404, content={"detail": "Frontend not found"})
