@@ -1,0 +1,28 @@
+{
+  "platform_name": "SELLER HUB",
+  "platform_description": "Универсальная SaaS-платформа для управления ассортиментом, товарами и каталогами",
+  "base_url": "http://localhost:3000",
+  "api_url": "http://localhost:8000",
+  "logo_url": "/logo.svg",
+  "favicon_url": "/favicon.ico",
+  "default_store_name": "Мой магазин",
+  "default_store_avatar": "/default-store-avatar.png",
+  "default_store_cover": "/default-store-cover.jpg",
+  "default_language": "ru",
+  "supported_languages": ["ru", "en", "uk"],
+  "telegram_bot": {
+    "enabled": true,
+    "bot_username": "SellerHubBot",
+    "bot_name": "SELLER HUB Assistant"
+  },
+  "google_oauth": {
+    "enabled": true,
+    "client_id": "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+  },
+  "support": {
+    "email": "support@sellerhub.com",
+    "telegram": "https://t.me/sellerhub_support",
+    "documentation_url": "/docs"
+  },
+  "maintenance_mode": false
+}

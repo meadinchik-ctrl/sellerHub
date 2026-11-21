@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sellerhub_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sellerhub_db
+      POSTGRES_USER: sellerhub_user
+      POSTGRES_PASSWORD: sellerhub_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sellerhub_user -d sellerhub_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: sellerhub_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: sellerhub_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sellerhub_user:sellerhub_password_123@postgres:5432/sellerhub_db
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: sellerhub_production_secret_key_9988776655
+      FRONTEND_URL: http://localhost:3000
+      BACKEND_URL: http://localhost:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./config.json:/app/config.json
+
+  telegram_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: sellerhub_telegram_bot
+    restart: unless-stopped
+    command: ["python", "-m", "telegram_bot.main"]
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sellerhub_user:sellerhub_password_123@postgres:5432/sellerhub_db
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-test_token_sellerhub_bot}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-SellerHubBot}
+      TELEGRAM_PROXY: ${TELEGRAM_PROXY:-socks5://host.docker.internal:10808}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./config.json:/app/config.json
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: sellerhub_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  postgres_data:
+  redis_data:

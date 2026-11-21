@@ -1,0 +1,7 @@
+uvicorn backend.app.main:app --reload --port 8000
+
+python -m telegram_bot.main
+
+$env:PATH = "C:\Program Files\nodejs;" + $env:PATH
+cd frontend
+npm run dev
